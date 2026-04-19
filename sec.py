@@ -9,7 +9,7 @@ import requests
 from edgar import Company, set_identity
 
 
-EMAIL = 'ENTER_YOUR_ADDRESS_EMAIL'
+EMAIL = 'kdkdpd@gmail.com'
 SEC_HEADERS = {
     'User-Agent': EMAIL
 }
