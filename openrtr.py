@@ -17,7 +17,7 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "sk-or-v1-90a8b1e6f749
 
 # The AI model to use via OpenRouter. Free models are available — switch by uncommenting another line.
 # OPENROUTER_MODEL = "tngtech/deepseek-r1t-chimera:free"
-OPENROUTER_MODEL = "nvidia/nemotron-3-nano-30b-a3b:free"
+OPENROUTER_MODEL = "google/gemini-2.0-flash-lite-preview-02-05:free"
 
 
 # Custom error class for OpenRouter API failures, inherits from Python's built-in RuntimeError.
