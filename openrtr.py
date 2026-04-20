@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Apr  5 14:54:48 2026
+Created on Sun Apr 5 14:54:48 2026
 
 @author: chris
 """
@@ -10,73 +10,96 @@ import requests
 
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 
-# Read the API key from environment variables first. If not set, fall back to the hardcoded key.
-# This allows overriding the key without modifying the code (e.g. for security or using a personal key).
-# os.environ.get() works cross-platform on Windows, Mac, and Linux.
+# Read the API key from environment variables.
+# Example on Streamlit Cloud: add OPENROUTER_API_KEY in Secrets / environment settings.
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "CLE_NON_CONFIGUREE")
 
-# The AI model to use via OpenRouter. Free models are available — switch by uncommenting another line.
+# Choose the model used through OpenRouter.
 # OPENROUTER_MODEL = "tngtech/deepseek-r1t-chimera:free"
 OPENROUTER_MODEL = "google/gemini-2.0-flash-lite-preview-02-05:free"
 
 
-# Custom error class for OpenRouter API failures, inherits from Python's built-in RuntimeError.
 class OpenRouterError(RuntimeError):
+    """Custom exception raised for OpenRouter API failures."""
     pass
 
 
-# Blueprint for a tool that sends prompts to an AI model and remembers past responses.
 class OpenRouterClient:
     def __init__(self):
-        # In-memory cache (dictionary) to store past prompts and their AI responses.
-        # Avoids sending the same prompt twice, saving time and API costs.
+        # Simple in-memory cache to avoid sending the same prompt multiple times
         self.prompt_cache = {}
 
-    def chat(self, prompt, response_format=None):
-        # Step 1 — Check the cache first.
-        # If this exact prompt was already sent before, return the saved answer immediately.
-        ai_reply_content = self.prompt_cache.get(prompt)
+    def chat(self, prompt: str, response_format=None) -> str:
+        """
+        Sends a prompt to OpenRouter and returns the model response.
 
-        if ai_reply_content:
-            return ai_reply_content
+        Parameters
+        ----------
+        prompt : str
+            Prompt sent to the model.
+        response_format : optional
+            Optional structured response format for compatible models.
 
-        # Step 2 — Build the request payload to send to the AI.
+        Returns
+        -------
+        str
+            Model response text.
+        """
+        if not prompt or not prompt.strip():
+            raise OpenRouterError("Prompt cannot be empty.")
+
+        if OPENROUTER_API_KEY == "CLE_NON_CONFIGUREE":
+            raise OpenRouterError(
+                "OPENROUTER_API_KEY is not configured. Please add it as an environment variable."
+            )
+
+        cached_response = self.prompt_cache.get(prompt)
+        if cached_response:
+            return cached_response
+
         payload = {
             "model": OPENROUTER_MODEL,
             "messages": [{"role": "user", "content": prompt}],
-            # Temperature controls creativity: 0 = very consistent, 1 = very random.
-            # Low temperature is appropriate here for reliable financial analysis output.
-            "temperature": 0.2
+            "temperature": 0.2,
         }
 
-        # Optionally enforce a specific response format (e.g. JSON) if provided.
         if response_format is not None:
             payload["response_format"] = response_format
 
-        # Step 3 — Send the prompt to OpenRouter via an HTTP POST request.
-        # The API key is passed in the Authorization header to authenticate the request.
-        r = requests.post(
-            f"{OPENROUTER_BASE}/chat/completions",
-            headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"},
-            json=payload,
-            timeout=60,
-        )
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+        }
 
-        # Step 4 — Handle errors.
-        # If the API returns a failure (e.g. invalid key, network issue), raise a descriptive error.
-        if not r.ok:
-            raise OpenRouterError(f"Chat failed: {r.status_code} {r.text}")
+        try:
+            response = requests.post(
+                f"{OPENROUTER_BASE}/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=60,
+            )
+        except requests.RequestException as exc:
+            raise OpenRouterError(f"Network error while calling OpenRouter: {exc}") from exc
 
-        response = r.json()
+        if not response.ok:
+            raise OpenRouterError(
+                f"Chat failed with status {response.status_code}: {response.text}"
+            )
 
-        print(response)
+        try:
+            response_json = response.json()
+        except ValueError as exc:
+            raise OpenRouterError("OpenRouter returned invalid JSON.") from exc
 
-        # Step 5 — Extract the AI's reply from the response.
-        # The API returns a JSON object; the text reply is nested at choices[0].message.content.
-        # This is a standard structure shared by most LLM APIs (OpenAI, OpenRouter, etc.).
-        ai_reply_content = response["choices"][0]["message"]["content"]
+        try:
+            ai_reply_content = response_json["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise OpenRouterError(
+                f"Unexpected OpenRouter response format: {response_json}"
+            ) from exc
 
-        # Save the response to cache so the same prompt is not sent again.
+        if not ai_reply_content:
+            raise OpenRouterError("OpenRouter returned an empty response.")
+
         self.prompt_cache[prompt] = ai_reply_content
-
         return ai_reply_content
