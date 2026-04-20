@@ -13,7 +13,7 @@ OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 # Read the API key from environment variables first. If not set, fall back to the hardcoded key.
 # This allows overriding the key without modifying the code (e.g. for security or using a personal key).
 # os.environ.get() works cross-platform on Windows, Mac, and Linux.
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "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")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "CLE_NON_CONFIGUREE")
 
 # The AI model to use via OpenRouter. Free models are available — switch by uncommenting another line.
 # OPENROUTER_MODEL = "tngtech/deepseek-r1t-chimera:free"
