@@ -16,7 +16,7 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "CLE_NON_CONFIGUREE")
 
 # Choose the model used through OpenRouter.
 # OPENROUTER_MODEL = "tngtech/deepseek-r1t-chimera:free"
-OPENROUTER_MODEL = "google/gemini-2.0-flash-lite-preview-02-05:free"
+OPENROUTER_MODEL = "mistralai/mistral-7b-instruct:free"
 
 
 class OpenRouterError(RuntimeError):
